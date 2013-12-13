@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=UTF-8"> 
+        <meta charset="utf-8">
+        <title>JavaScript Workflow Engine</title>
+        <meta name="generator" content="Bootply.com" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+        <link href="http://netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css" rel="stylesheet">
+        <!--[if lt IE 9]>
+          <script src="//html5shim.googlecode.com/svn/trunk/html5.js"></script>
+        <![endif]-->
+        <link rel="shortcut icon" href="/bootstrap/img/favicon.ico">
+    </head>
+    <body>
+    
+        <div class="container">
+		
+		<div class="row">
+			  <div class="col-md-12">
+				<div class="well well-sm"> 
+				  <h3>JavaScript Workflow Engine</h3>
+				</div>
+			  </div>
+		</div><!--/row-->
+		<div class="row"> 
+			<div class="col-md-4">
+				<select class="form-control" id="workflows">
+					 <option value="">Select a workflow..</option> 
+				</select>
+			</div>
+			<div class="col-md-8">
+			  <button class="btn btn-default btn-success" id="btnRun">Start</button>
+			  <button class="btn btn-default btn-danger" id="btnCancel">Cancel</button>
+			</div>
+		</div><!--/row-->
+		<div class="row">
+			<div class="col-md-4" id="divSteps">
+				
+			</div>
+			<div class="col-md-8"></div>
+		</div><!--/row-->
+		  
+		<hr>
+		  
+		<div class="row">
+			<div class="col-md-12">
+				<div class="alert alert-info alert-dismissable alert-sm" id="divAlert">
+					<button type="button" class="close" data-dismiss="alert">×</button>
+					<span id="txtAlert">Notify messages here</span><span id="txtStatus"></span>
+				</div>
+			</div>
+		</div>
+		
+		</div><!--/container-->
+        
+        <script type='text/javascript' src="//ajax.googleapis.com/ajax/libs/jquery/2.0.2/jquery.min.js"></script>
+        <script type='text/javascript' src="//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js"></script>
+		<script type='text/javascript' src="workflow-engine.js"></script>
+        <script type='text/javascript'>
+
+		/* ------ workflow actions ------ */
+			
+			/* timer - simulates async activity */
+			var wait = function(str,ms,cb) {
+				setTimeout(function() {
+					if(typeof cb == 'function')
+						console.debug("async:"+str);     
+						cb(str);
+				}, ms);
+			};
+
+			/* prompts user for input */
+			var promptUser = function(msg,cb){
+				var reply = prompt(msg, "");
+				cb(reply);
+			};
+			
+			/* alerts user */
+			var alertUser = function(msg,cb){		
+				alert(msg);
+				cb();
+			};
+			
+			/* adds a+b */
+			var add = function(a,b,cb){
+				
+				if (typeof a=="undefined" || typeof b=="undefined"){
+					cb(0);
+				}
+				else {
+					var c=parseInt(a)+parseInt(b);
+					console.debug(a+" plus "+b+" = "+c); 
+					cb(c);
+				}
+			};
+
+		/* end actions */
+
+
+		/* workflow definitions */
+		var wfDefs = [
+			{
+			 "id":"1",
+			 "name":"Workflow 1",
+			 "desc":"Wait, then say hello.",
+			 "sequence":[
+			   {"action":"wait","args":"'please wait..',2000","title":"Wait 2 seconds"}, 
+			   {"action":"alertUser","args":"'Hello!'","title":"Say Hello"}]
+			},
+			{
+			 "id":"2",
+			 "name":"Workflow 2",
+			 "desc":"Prompt and echo user name.",
+			 "sequence":[
+			   {"action":"promptUser","args":"'What is your first name?'","title":"Prompt user for first name"},
+			   {"action":"wait","args":"'wait..',2000","title":"Wait.."},
+			   {"action":"promptUser","args":"'What is your last name?'","title":"Prompt user for last name"},
+			   {"action":"wait","args":"'wait..',2000","title":"Wait.."},
+			   {"action":"alertUser","args":"'Hello, '+responses[0]+' '+responses[2]","title":"Echo user name"}]
+			},
+			{
+			 "id":"3",
+			 "name":"Workflow 3",
+			 "desc":"Wait 8 seconds and notify user.",
+			 "sequence":[
+			   {"action":"wait","args":"'waiting 8000 ms..',8000","title":"Wait 8 seconds"},
+			   {"action":"alertUser","args":"'Okay, times up!'","title":"Notify user"}]
+			},
+			{
+			 "id":"4",
+			 "name":"Workflow 4",
+			 "desc":"Add 2 numbers and display sum.",
+			 "sequence":[
+			   {"action":"promptUser","args":"'1st number?..'","title":"Prompt user for 1st operand"},
+			   {"action":"promptUser","args":"'2nd number?..'","title":"Prompt user for 2nd operand"},
+			   {"action":"add","args":"responses[0],responses[1]","title":"Perform add operation"},
+			   {"action":"alertUser","args":"'The sum is: '+last","title":"Notify user of sum"}]
+			}
+		];
+
+
+		/* display message in alert box */
+		function showMessage(txt){
+		  if (typeof txt=="undefined") {
+			return;
+		  }
+		  $('#txtAlert').html(txt);
+		  $('#divAlert').show().stop().fadeOut(8000);
+		}
+
+
+
+		$(document).ready(function() {  
+		 
+			var wf;
+		  
+			$('#divAlert').hide();
+		  
+			/* populate select list */
+			for (w in wfDefs) {
+				$('<option value="'+w+'">'+wfDefs[w].desc+'</option>').appendTo('#workflows');  
+			};
+		  
+			/* change select list */
+			$('#workflows').change(function(){
+		  
+				var selected = $('#workflows').val();
+				$('#divSteps').empty();
+			  
+				if (typeof selected!="undefined" && selected!="") {
+					var steps = wfDefs[selected].sequence;
+				  
+					/* populate steps list */
+					for (step in steps) {
+						$('<h4 class="step"><span class="label label-default pull-right"> </span> '+steps[step].title+'</h4>').appendTo('#divSteps');  
+					};
+				  
+				}
+			});
+		  
+		  
+			/* start workflow */
+			$('#btnRun').click(function(){
+		  
+				var selected = $('#workflows').val();
+			  
+				if (typeof selected=="undefined" || selected=="") {
+				
+				  showMessage("No workflow selected.");
+				  return false;
+				  
+				}
+			  
+			  
+				/* instantiate workflow */
+				wf = new workflow(wfDefs[selected]);
+				wf.init();
+				
+			  
+				/* attach state change handlers */
+				wf.addListener("stateChanged",function(state){
+					showMessage(state.stateName);
+				});
+			  
+				wf.addListener("stepStarted",function(idx){
+					if (idx >= -1){
+						$('#divSteps>.step').eq(idx).find('.label').toggleClass('label-warning');
+					}
+				});
+			  
+				wf.addListener("stepComplete",function(resp){
+					if (resp.step >= -1){
+						$('#divSteps>.step').eq(resp.step).find('.label').removeClass('label-warning').toggleClass('label-success');
+					}
+				});
+			  
+				wf.addListener("allComplete",function(resp){
+					//$('#divAlert').hide();
+				});
+					 
+			  
+				/* run the workflow */     
+				wf.exec(function(r){console.log("Workflow completed: "+r)});
+
+			});
+
+		  
+			/* cancel workflow */
+			$('#btnCancel').click(function(){
+			  
+				if (typeof wf=="undefined") {
+				  showMessage("No workflow started.");
+				  return;
+					
+				}
+		  
+				wf.cancel();
+			});
+		  
+		  
+			/* pause workflow */
+			$('#btnPause').click(function(){
+			  
+				if (typeof wf=="undefined") {
+				  showMessage("No workflow started.");
+				  return;
+				}
+		  
+				wf.pause(
+				  function(){
+					showMessage(state.stateName)             
+				});
+			});
+		  
+			/* restart workflow */
+			$('#btnRestart').click(function(){
+				if (typeof wf=="undefined") {
+				
+				  showMessage("No workflow started.");
+				  return;
+				  
+				}
+				wf.restart();
+			});
+
+		});
+				
+        </script>
+    </body>
+</html>
