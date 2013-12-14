@@ -12,7 +12,7 @@
 
 /* ------ workflow engine ------ */
 
-function workflow(wfDef) {
+var workflow = function(wfDef) {
   
   var _root = this;
   
